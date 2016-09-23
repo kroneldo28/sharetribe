@@ -92,6 +92,17 @@ describe Result do
       end
     end
 
+    describe "#rescue" do
+
+      it "returns the original success when rescued" do
+        expect_success(success.rescue { |e| Result::Success.new(nil) }, 1)
+      end
+
+      it "returns the original success" do
+        expect_success(success.rescue { |e| Result::Error.new(nil) }, 1)
+      end
+    end
+
     describe "#maybe" do
 
       it "returns Some(value)" do
@@ -184,6 +195,32 @@ describe Result do
 
       it "is a no-op" do
         expect_error(error.and_then { |v| Result::Success(v + 1) }, :error, 1)
+      end
+    end
+
+    describe "#rescue" do
+
+      it "rescues an error into a success" do
+        msg = "ok"
+        expect_success(error.rescue { Result::Success.new(msg) }, msg)
+      end
+
+      it "rescues an error into the same error" do
+        original_msg = error[:error_msg]
+        original_data = error[:data]
+        expect_error(error.rescue { |e| e }, original_msg, original_data)
+      end
+
+      it "rescues an error into another error" do
+        new_msg = "new error message"
+        original_msg = error[:error_msg]
+        original_data = error[:data]
+        expect_error(
+          error.rescue { |e|
+            Result::Error.new(new_msg, { error: e })
+          },
+          new_msg,
+          { error: error })
       end
     end
 
